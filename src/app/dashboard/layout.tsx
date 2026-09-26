@@ -3,19 +3,28 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import AppShell from '@/components/AppShell';
+import Logo from '@/components/Logo';
 
 // Protege todas as telas /dashboard: sem login, volta para /login.
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [ok, setOk] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace('/login');
-      else setOk(true);
+      else setEmail(data.session.user.email || '');
     });
   }, [router]);
 
-  if (!ok) return <div className="p-8">Carregando...</div>;
-  return <>{children}</>;
+  if (email === null) {
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <div className="animate-pulse"><Logo /></div>
+      </div>
+    );
+  }
+
+  return <AppShell email={email}>{children}</AppShell>;
 }
