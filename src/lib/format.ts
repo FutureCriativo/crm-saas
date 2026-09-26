@@ -30,8 +30,8 @@ export function warrantyStatus(expiresAt?: string | null): WarrantyStatus {
   return 'active';
 }
 
-export const warrantyLabel: Record<WarrantyStatus, { text: string; css: string }> = {
-  active: { text: 'Ativa', css: 'bg-green-100 text-green-800' },
-  expiring_soon: { text: 'Vencendo', css: 'bg-yellow-100 text-yellow-800' },
-  expired: { text: 'Vencida', css: 'bg-red-100 text-red-800' },
+export const warrantyLabel: Record<WarrantyStatus, { text: string; css: string; dot: string }> = {
+  active: { text: 'Ativa', css: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+  expiring_soon: { text: 'Vencendo', css: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' },
+  expired: { text: 'Vencida', css: 'bg-rose-50 text-rose-700', dot: 'bg-rose-500' },
 };
