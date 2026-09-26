@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { formatDate, warrantyStatus, warrantyLabel } from '@/lib/format';
+import { supabase } from '@/lib/supabase';
+import { formatDate, warrantyStatus } from '@/lib/format';
+import { PageHeader, WarrantyBadge, Loading, Empty } from '@/components/ui';
+import { IconPlus, IconSearch } from '@/components/icons';
 
 export default function InstallationsPage() {
   const [installations, setInstallations] = useState<any[]>([]);
@@ -11,104 +13,107 @@ export default function InstallationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchInstallations = async () => {
-      const { data } = await supabase
-        .from('installations')
-        .select(`
-          id,
-          order_number,
-          machine_type,
-          installation_date,
-          warranty_expires_at,
-          warranty_status,
-          clients (name, phone)
-        `)
-        .order('created_at', { ascending: false });
-
-      setInstallations(data || []);
-      setLoading(false);
-    };
-
-    fetchInstallations();
+    supabase
+      .from('installations')
+      .select('id, order_number, machine_type, machine_brand, installation_date, warranty_expires_at, installed_by, clients (name, phone)')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setInstallations(data || []);
+        setLoading(false);
+      });
   }, []);
 
-  const filteredInstallations = installations.filter(i =>
-    (i.order_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (i.clients?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  const q = searchTerm.toLowerCase();
+  const filtered = installations.filter((i) =>
+    (i.order_number || '').toLowerCase().includes(q) ||
+    (i.clients?.name || '').toLowerCase().includes(q)
   );
 
-  if (loading) return <div className="p-8">Carregando...</div>;
+  if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">🔧 Instalações</h1>
-        <div className="flex gap-2">
-          <Link
-            href="/dashboard/installations/new"
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-          >
-            + Nova OS
+    <>
+      <PageHeader
+        title="Instalações"
+        subtitle="Ordens de serviço e garantias"
+        action={
+          <Link href="/dashboard/installations/new" className="btn-primary">
+            <IconPlus className="h-5 w-5" /> Nova OS
           </Link>
-          <Link
-            href="/dashboard"
-            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-          >
-            ← Voltar
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="mb-6">
+      <div className="relative mb-5">
+        <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
-          placeholder="Buscar por OS ou cliente..."
+          placeholder="Buscar por número da OS ou cliente..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input pl-11"
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-100 border-b">
-            <tr>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">OS</th>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Cliente</th>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Máquina</th>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Data Instal.</th>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Garantia</th>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInstallations.map((inst) => (
-              <tr key={inst.id} className="border-b hover:bg-gray-50 transition">
-                <td className="px-6 py-3 font-bold text-blue-600">{inst.order_number}</td>
-                <td className="px-6 py-3 text-gray-800">{inst.clients?.name}</td>
-                <td className="px-6 py-3 text-gray-600">{inst.machine_type}</td>
-                <td className="px-6 py-3 text-gray-600">
-                  {formatDate(inst.installation_date)}
-                </td>
-                <td className="px-6 py-3 text-gray-600">
-                  {formatDate(inst.warranty_expires_at)}
-                </td>
-                <td className="px-6 py-3">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${warrantyLabel[warrantyStatus(inst.warranty_expires_at)].css}`}>
-                    {warrantyLabel[warrantyStatus(inst.warranty_expires_at)].text}
-                  </span>
-                </td>
+      {filtered.length === 0 ? (
+        <Empty
+          text={installations.length === 0 ? 'Nenhuma instalação registrada ainda.' : 'Nenhuma OS encontrada.'}
+          action={installations.length === 0 && <Link href="/dashboard/installations/new" className="btn-primary">Registrar a primeira</Link>}
+        />
+      ) : (
+        <div className="card overflow-hidden">
+          {/* Tabela (computador) */}
+          <table className="hidden w-full text-left text-sm md:table">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-5 py-3 font-semibold">OS</th>
+                <th className="px-5 py-3 font-semibold">Cliente</th>
+                <th className="px-5 py-3 font-semibold">Equipamento</th>
+                <th className="px-5 py-3 font-semibold">Instalação</th>
+                <th className="px-5 py-3 font-semibold">Garantia até</th>
+                <th className="px-5 py-3 font-semibold">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map((i) => (
+                <tr key={i.id} className="transition hover:bg-brand-50/60">
+                  <td className="px-5 py-3.5">
+                    <span className="rounded-lg bg-brand-50 px-2.5 py-1 font-mono text-xs font-semibold text-brand-800">
+                      {i.order_number}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 font-medium text-slate-900">{i.clients?.name}</td>
+                  <td className="px-5 py-3.5 text-slate-600">
+                    {i.machine_type}
+                    {i.machine_brand && <span className="text-slate-400"> · {i.machine_brand}</span>}
+                  </td>
+                  <td className="px-5 py-3.5 text-slate-600">{formatDate(i.installation_date)}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{formatDate(i.warranty_expires_at)}</td>
+                  <td className="px-5 py-3.5"><WarrantyBadge status={warrantyStatus(i.warranty_expires_at)} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-      {filteredInstallations.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          Nenhuma instalação encontrada
+          {/* Cartões (celular) */}
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {filtered.map((i) => (
+              <li key={i.id} className="px-4 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-lg bg-brand-50 px-2.5 py-1 font-mono text-xs font-semibold text-brand-800">
+                    {i.order_number}
+                  </span>
+                  <WarrantyBadge status={warrantyStatus(i.warranty_expires_at)} />
+                </div>
+                <p className="mt-2 font-medium text-slate-900">{i.clients?.name}</p>
+                <p className="text-sm text-slate-500">{i.machine_type}</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  Instalado {formatDate(i.installation_date)} · Garantia até {formatDate(i.warranty_expires_at)}
+                </p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-    </div>
+    </>
   );
 }
