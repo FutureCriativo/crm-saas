@@ -1,8 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { PageHeader, Loading, Empty } from '@/components/ui';
+import { IconPlus, IconSearch } from '@/components/icons';
+
+function initials(name: string) {
+  return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+}
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([]);
@@ -10,84 +16,103 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchClients = async () => {
-      const { data } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      setClients(data || []);
-      setLoading(false);
-    };
-
-    fetchClients();
+    supabase
+      .from('clients')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setClients(data || []);
+        setLoading(false);
+      });
   }, []);
 
-  const filteredClients = clients.filter(c =>
-    (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.phone?.includes(searchTerm)
+  const q = searchTerm.toLowerCase();
+  const filtered = clients.filter((c) =>
+    (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(searchTerm)
   );
 
-  if (loading) return <div className="p-8">Carregando...</div>;
+  if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">👥 Clientes</h1>
-        <div className="flex gap-2">
-          <Link
-            href="/dashboard/clients/new"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            + Novo cliente
+    <>
+      <PageHeader
+        title="Clientes"
+        subtitle={`${clients.length} cadastrado${clients.length === 1 ? '' : 's'}`}
+        action={
+          <Link href="/dashboard/clients/new" className="btn-primary">
+            <IconPlus className="h-5 w-5" /> Novo cliente
           </Link>
-          <Link
-            href="/dashboard"
-            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-          >
-            ← Voltar
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="mb-6">
+      <div className="relative mb-5">
+        <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
           placeholder="Buscar por nome ou telefone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input pl-11"
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-100 border-b">
-            <tr>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Nome</th>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Telefone</th>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Email</th>
-              <th className="px-6 py-3 text-left font-bold text-gray-700">Endereço</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredClients.map((client) => (
-              <tr key={client.id} className="border-b hover:bg-gray-50 transition">
-                <td className="px-6 py-3 font-medium text-gray-800">{client.name}</td>
-                <td className="px-6 py-3 text-gray-600">{client.phone || '-'}</td>
-                <td className="px-6 py-3 text-gray-600">{client.email || '-'}</td>
-                <td className="px-6 py-3 text-gray-600">{client.address || '-'}</td>
+      {filtered.length === 0 ? (
+        <Empty
+          text={clients.length === 0 ? 'Você ainda não cadastrou clientes.' : 'Nenhum cliente encontrado.'}
+          action={clients.length === 0 && <Link href="/dashboard/clients/new" className="btn-primary">Cadastrar o primeiro</Link>}
+        />
+      ) : (
+        <div className="card overflow-hidden">
+          {/* Tabela (computador) */}
+          <table className="hidden w-full text-left text-sm md:table">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-5 py-3 font-semibold">Cliente</th>
+                <th className="px-5 py-3 font-semibold">Telefone</th>
+                <th className="px-5 py-3 font-semibold">Cidade</th>
+                <th className="px-5 py-3 font-semibold">Endereço</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map((c) => (
+                <tr key={c.id} className="transition hover:bg-brand-50/60">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-bold text-brand-800">
+                        {initials(c.name || '?')}
+                      </span>
+                      <div>
+                        <p className="font-medium text-slate-900">{c.name}</p>
+                        {c.email && <p className="text-xs text-slate-500">{c.email}</p>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-slate-600">{c.phone || '—'}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{c.city ? `${c.city}${c.state ? '/' + c.state : ''}` : '—'}</td>
+                  <td className="px-5 py-3.5 text-slate-600">{c.address || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-      {filteredClients.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          Nenhum cliente encontrado
+          {/* Lista (celular) */}
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {filtered.map((c) => (
+              <li key={c.id} className="flex items-center gap-3 px-4 py-3.5">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-800">
+                  {initials(c.name || '?')}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-slate-900">{c.name}</p>
+                  <p className="truncate text-sm text-slate-500">
+                    {[c.phone, c.city].filter(Boolean).join(' · ') || 'Sem contato'}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-    </div>
+    </>
   );
 }
