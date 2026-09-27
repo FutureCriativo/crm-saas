@@ -55,28 +55,58 @@ export default function HomePage() {
             </ul>
           </div>
 
-          {/* Prévia do painel */}
-          <div className="card hidden p-5 shadow-xl md:block">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold text-slate-900">Painel da empresa</p>
-              <span className="rounded-full bg-brand-100 px-2.5 py-1 text-xs font-semibold text-brand-800">{APP_NAME}</span>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {[['128', 'Clientes'], ['96', 'Em garantia'], ['7', 'Vencem em 30d']].map(([n, l]) => (
-                <div key={l} className="rounded-xl bg-slate-50 p-3">
-                  <p className="text-2xl font-bold text-slate-900">{n}</p>
-                  <p className="text-xs text-slate-500">{l}</p>
+          {/* Prévia do painel - Dashboard */}
+          <div className="card hidden overflow-hidden shadow-2xl md:block bg-gradient-to-br from-slate-900 to-slate-800">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider">Dashboard</p>
+                  <p className="mt-1 text-xl font-bold text-white">{APP_NAME}</p>
                 </div>
-              ))}
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center">
+                  <span className="text-lg font-bold text-white">📊</span>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/20">
+                  <p className="text-2xl font-bold text-emerald-400">+45%</p>
+                  <p className="text-xs text-slate-300 mt-1">Crescimento anual</p>
+                </div>
+                <div className="rounded-lg bg-white/10 backdrop-blur p-3 border border-white/20">
+                  <p className="text-2xl font-bold text-blue-400">95%</p>
+                  <p className="text-xs text-slate-300 mt-1">Satisfação cliente</p>
+                </div>
+              </div>
+
+              {/* Atividades recentes */}
+              <div className="mt-5 space-y-2">
+                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Últimas atividades</p>
+                <div className="space-y-2">
+                  {[
+                    { emoji: '✅', text: 'Instalação finalizada', time: 'Hoje' },
+                    { emoji: '🔧', text: 'Manutenção agendada', time: 'Amanhã' },
+                    { emoji: '📞', text: 'Cliente em garantia', time: '2 dias' },
+                  ].map((item) => (
+                    <div key={item.text} className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg">{item.emoji}</span>
+                        <span className="text-slate-300">{item.text}</span>
+                      </span>
+                      <span className="text-slate-500">{item.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="mt-6 pt-4 border-t border-white/10">
+                <p className="text-xs text-slate-300">Organize sua empresa, ganhe mais clientes</p>
+                <p className="text-xs text-brand-300 font-semibold mt-2">→ Acesse o painel completo</p>
+              </div>
             </div>
-            <ul className="mt-4 divide-y divide-slate-100 text-sm">
-              {[['2026-0128', 'Split 12.000 BTU', 'Ativa'], ['2026-0127', 'Higienização', 'Ativa'], ['2025-0981', 'Split 9.000 BTU', 'Vencendo']].map(([os, eq, st]) => (
-                <li key={os} className="flex items-center justify-between py-2.5">
-                  <span><b className="font-mono text-brand-800">{os}</b> · {eq}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${st === 'Ativa' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{st}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </section>
