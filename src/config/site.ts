@@ -3,7 +3,7 @@
 // No futuro estes dados podem vir do banco (tabela companies), um por empresa.
 
 export const SITE = {
-  businessName: 'FutureCriativo Climatização',
+  businessName: 'ICE Multservice Climatização',
   headline: 'Ar-condicionado instalado certo, com garantia registrada',
   subheadline:
     'Instalação, manutenção e higienização para casas e empresas. Cada serviço fica registrado com número de OS e garantia, fácil de consultar quando precisar.',
