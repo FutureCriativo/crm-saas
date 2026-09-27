@@ -22,8 +22,6 @@ export default function HomePage() {
           <nav className="flex items-center gap-2">
             <a href="#servicos" className="hidden px-3 py-2 text-sm text-slate-600 hover:text-slate-900 md:inline">Serviços</a>
             <a href="#orcamento" className="hidden px-3 py-2 text-sm text-slate-600 hover:text-slate-900 md:inline">Orçamento</a>
-            <Link href="/login?perfil=cliente" className="btn-ghost whitespace-nowrap px-3 py-2 text-sm">Sou cliente</Link>
-            <Link href="/login?perfil=gestor" className="btn-primary whitespace-nowrap px-3 py-2 text-sm">Sou gestor</Link>
           </nav>
         </div>
       </header>
@@ -103,6 +101,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Orçamento - DESTAQUE */}
+      <section id="orcamento" className="scroll-mt-20 bg-gradient-to-b from-brand-50 to-white">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-2">
+          <div>
+            <h2 className="text-4xl font-bold tracking-tight text-slate-900">Peça seu orçamento</h2>
+            <p className="mt-4 text-lg text-slate-600">Responda em menos de 1 minuto. Retornamos pelo telefone ou WhatsApp.</p>
+            <div className="mt-8 space-y-3 text-base">
+              {wa && (
+                <a href={wa} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-700 hover:text-brand-700 font-semibold">
+                  <IconChat className="h-5 w-5 text-brand-600" /> WhatsApp - Resposta rápida
+                </a>
+              )}
+              <a href={`mailto:${SITE.email}`} className="flex items-center gap-3 text-slate-700 hover:text-brand-700">
+                <IconMail className="h-5 w-5 text-brand-600" /> {SITE.email}
+              </a>
+            </div>
+          </div>
+          <LeadForm />
+        </div>
+      </section>
+
       {/* Como funciona */}
       <section className="bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 py-16">
@@ -119,42 +138,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Orçamento */}
-      <section id="orcamento" className="mx-auto grid max-w-6xl scroll-mt-20 gap-10 px-4 py-16 md:grid-cols-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Peça seu orçamento</h2>
-          <p className="mt-3 text-slate-600">Responda em menos de 1 minuto. Retornamos pelo telefone ou WhatsApp.</p>
-          <div className="mt-8 space-y-3 text-sm">
-            {wa && (
-              <a href={wa} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-slate-700 hover:text-brand-700">
-                <IconChat className="h-5 w-5 text-brand-600" /> WhatsApp
-              </a>
-            )}
-            <a href={`mailto:${SITE.email}`} className="flex items-center gap-3 text-slate-700 hover:text-brand-700">
-              <IconMail className="h-5 w-5 text-brand-600" /> {SITE.email}
-            </a>
+      {/* Acesso - Área do cliente e gestor */}
+      <section className="border-t border-slate-100 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <p className="text-center text-sm text-slate-500 mb-6">Já é cliente ou gestor?</p>
+          <div className="grid gap-3 md:grid-cols-2 md:max-w-md md:mx-auto">
+            <Link href="/login?perfil=cliente" className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
+              <IconShield className="h-4 w-4" /> Área do cliente
+            </Link>
+            <Link href="/login?perfil=gestor" className="flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition">
+              <IconUsers className="h-4 w-4" /> Área do gestor
+            </Link>
           </div>
-        </div>
-        <LeadForm />
-      </section>
-
-      {/* Acesso */}
-      <section className="border-t border-slate-100 bg-gradient-to-br from-brand-100 to-brand-200">
-        <div className="mx-auto grid max-w-6xl gap-4 px-4 py-14 md:grid-cols-2">
-          <Link href="/login?perfil=cliente" className="card group flex items-center gap-4 p-6 transition hover:shadow-md">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-300 text-brand-900"><IconShield className="h-6 w-6" /></span>
-            <span>
-              <span className="block font-semibold text-slate-900">Área do cliente</span>
-              <span className="text-sm text-slate-500">Veja suas instalações e garantias</span>
-            </span>
-          </Link>
-          <Link href="/login?perfil=gestor" className="card group flex items-center gap-4 p-6 transition hover:shadow-md">
-            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-300 text-brand-900"><IconUsers className="h-6 w-6" /></span>
-            <span>
-              <span className="block font-semibold text-slate-900">Área do gestor</span>
-              <span className="text-sm text-slate-500">Painel CRM: clientes, OS e garantias</span>
-            </span>
-          </Link>
         </div>
       </section>
 
