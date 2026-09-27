@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import AppShell from '@/components/AppShell';
 import Logo from '@/components/Logo';
+import { getProfile, isStaff } from '@/lib/profile';
 
-// Protege todas as telas /dashboard: sem login, volta para /login.
+// Painel do gestor: só dono e técnico. Cliente vai para /portal; sem login, volta para /login.
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.replace('/login');
-      else setEmail(data.session.user.email || '');
+    getProfile().then((p) => {
+      if (!p) router.replace('/login?perfil=gestor');
+      else if (!isStaff(p)) router.replace('/portal');
+      else setEmail(p.email);
     });
   }, [router]);
 

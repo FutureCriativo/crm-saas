@@ -27,3 +27,15 @@ export const IconSnow = ({ className }: P) =>
   base(<><path d="M12 2v20" /><path d="M4.9 6.5 19.1 17.5" /><path d="M19.1 6.5 4.9 17.5" /><path d="m9 4 3 2 3-2" /><path d="m9 20 3-2 3 2" /></>, className);
 export const IconChevron = ({ className }: P) =>
   base(<path d="m9 6 6 6-6 6" />, className);
+export const IconChat = ({ className }: P) =>
+  base(<path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z" />, className);
+export const IconMail = ({ className }: P) =>
+  base(<><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>, className);
+export const IconCheck = ({ className }: P) =>
+  base(<path d="m5 12.5 4.5 4.5L19 7.5" />, className);
+export const IconSparkle = ({ className }: P) =>
+  base(<><path d="M12 3v4M12 17v4M3 12h4M17 12h4" /><path d="m6 6 2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" /></>, className);
+export const IconCalendar = ({ className }: P) =>
+  base(<><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></>, className);
+export const IconLock = ({ className }: P) =>
+  base(<><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>, className);

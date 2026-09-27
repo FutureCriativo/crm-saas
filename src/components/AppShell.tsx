@@ -23,7 +23,7 @@ export default function AppShell({ email, children }: { email: string; children:
 
   const logout = async () => {
     await supabase.auth.signOut();
-    router.replace('/login');
+    router.replace('/');
   };
 
   return (
