@@ -1,31 +1,45 @@
 'use client';
-
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getProfile, homeFor } from '@/lib/profile';
-import Logo from '@/components/Logo';
-import { APP_TAGLINE } from '@/lib/brand';
-import { IconShield, IconUsers, IconWrench } from '@/components/icons';
+import { normalizeUsername, techEmail, USERNAME_RE } from '@/lib/tech-login';
+import TopNav from '@/components/layout/TopNav';
+import { ErrorBox } from '@/components/ui';
 
 function LoginForm() {
   const params = useSearchParams();
-  const perfil = params.get('perfil') === 'cliente' ? 'cliente' : 'gestor';
-  const [email, setEmail] = useState('');
+  const router = useRouter();
+  const perfilParam = params.get('perfil');
+  const isTech = perfilParam === 'tecnico';
+  const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
+
+  // Links antigos da "área do cliente" agora levam à consulta por código
+  useEffect(() => { if (perfilParam === 'cliente') router.replace('/consulta'); }, [perfilParam, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error) {
-      setError(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar. Tente novamente.');
+    let email = login.trim();
+    if (isTech) {
+      const u = normalizeUsername(login);
+      if (!USERNAME_RE.test(u)) { setError('Usuário ou senha incorretos.'); setLoading(false); return; }
+      email = techEmail(u);
+    }
+
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    if (authError) {
+      setError(/banned/i.test(authError.message)
+        ? 'Acesso desativado. Fale com o gestor.'
+        : /invalid login|credentials/i.test(authError.message)
+          ? (isTech ? 'Usuário ou senha incorretos.' : 'E-mail ou senha incorretos.')
+          : 'Não foi possível entrar. Tente novamente.');
       setLoading(false);
       return;
     }
@@ -34,7 +48,7 @@ function LoginForm() {
     const profile = await getProfile();
     if (!profile) {
       await supabase.auth.signOut();
-      setError('Sua conta ainda não foi liberada. Fale com a empresa.');
+      setError('Seu acesso não está liberado ou foi desativado. Fale com o gestor.');
       setLoading(false);
       return;
     }
@@ -43,60 +57,37 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <div className="lg:hidden"><Logo /></div>
-      <Link href="/" className="mt-6 inline-block text-sm text-slate-500 hover:text-slate-800 lg:mt-0">← Voltar ao site</Link>
-      <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
-        {perfil === 'cliente' ? 'Área do cliente' : 'Área do gestor'}
-      </h2>
-      <p className="mt-1 text-sm text-slate-500">
-        {perfil === 'cliente' ? 'Consulte suas instalações e garantias.' : 'Acesse o painel de clientes, OS e garantias.'}
-      </p>
+      <div className="mb-6 inline-flex rounded-xl bg-slate-100 p-1" role="tablist">
+        <Link href="/login?perfil=tecnico" role="tab" aria-selected={isTech} className={`rounded-lg px-4 py-1.5 text-sm font-medium ${isTech ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Time Técnico</Link>
+        <Link href="/login?perfil=gestor" role="tab" aria-selected={!isTech} className={`rounded-lg px-4 py-1.5 text-sm font-medium ${!isTech ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Gestor</Link>
+      </div>
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900">{isTech ? 'Entrar como técnico' : 'Entrar como gestor'}</h1>
+      <p className="mt-1 text-sm text-slate-500">{isTech ? 'Use o usuário e a senha que o gestor criou para você.' : 'Acesse pedidos, tarefas, clientes e garantias.'}</p>
 
-      <form onSubmit={handleLogin} className="mt-8 space-y-5">
+      <form onSubmit={handleLogin} className="mt-6 space-y-5">
         <div>
-          <label className="label">E-mail</label>
-          <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
-            placeholder="seu@email.com" className="input" required />
+          <label className="label" htmlFor="login">{isTech ? 'Usuário' : 'E-mail'}</label>
+          {isTech
+            ? <input id="login" autoComplete="username" autoCapitalize="none" value={login} onChange={(e) => setLogin(e.target.value)} placeholder="ex.: paulo" className="input" required />
+            : <input id="login" type="email" autoComplete="email" value={login} onChange={(e) => setLogin(e.target.value)} placeholder="seu@email.com" className="input" required />}
         </div>
         <div>
-          <label className="label">Senha</label>
-          <input type="password" autoComplete="current-password" value={password}
-            onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="input" required />
+          <label className="label" htmlFor="password">Senha</label>
+          <input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="input" required />
         </div>
-
-        {error && <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
-
-        <button type="submit" disabled={loading} className="btn-primary w-full py-3">
-          {loading ? 'Entrando...' : 'Entrar'}
-        </button>
+        <ErrorBox text={error} />
+        <button type="submit" disabled={loading} className="btn-primary w-full py-3">{loading ? 'Entrando...' : 'Entrar'}</button>
       </form>
-
-      <p className="mt-6 text-center text-sm text-slate-500">
-        {perfil === 'cliente'
-          ? <>É gestor? <Link href="/login?perfil=gestor" className="font-medium text-brand-700">Entrar como gestor</Link></>
-          : <>É cliente? <Link href="/login?perfil=cliente" className="font-medium text-brand-700">Entrar como cliente</Link></>}
-      </p>
+      <p className="mt-6 text-center text-sm text-slate-500">Esqueceu a senha? {isTech ? 'Peça ao gestor para redefinir.' : 'Fale com quem administra o sistema.'}</p>
     </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-brand-200 via-brand-300 to-brand-400 p-12 lg:flex lg:flex-col">
-        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/20" />
-        <div className="absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-white/10" />
-        <Link href="/" className="relative"><Logo /></Link>
-        <div className="relative mt-auto max-w-md">
-          <h1 className="text-4xl font-bold leading-tight tracking-tight text-brand-900">{APP_TAGLINE}</h1>
-          <ul className="mt-8 space-y-3 text-brand-900/80">
-            <li className="flex items-center gap-3"><IconUsers className="h-5 w-5" /> Cadastro de clientes em segundos</li>
-            <li className="flex items-center gap-3"><IconWrench className="h-5 w-5" /> OS numerada automaticamente</li>
-            <li className="flex items-center gap-3"><IconShield className="h-5 w-5" /> Garantias sempre sob controle</li>
-          </ul>
-        </div>
-      </div>
-      <div className="flex items-center justify-center bg-white px-6 py-12">
+    <div className="min-h-screen bg-white">
+      <TopNav />
+      <div className="flex justify-center px-4 py-12">
         <Suspense fallback={null}><LoginForm /></Suspense>
       </div>
     </div>

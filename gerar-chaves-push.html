@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<title>Gerar chaves de aviso (push)</title>
+<style>
+  body{font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:720px;margin:32px auto;padding:0 16px;color:#1e293b}
+  h1{font-size:1.5rem} .box{border:1px solid #cbd5e1;border-radius:12px;padding:14px;margin:14px 0;background:#f8fafc}
+  code{display:block;word-break:break-all;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin:8px 0;font-size:.85rem}
+  button{background:#89CFF0;border:0;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;color:#0c2d48}
+  .warn{background:#fff7ed;border-color:#fdba74} small{color:#64748b}
+</style>
+</head>
+<body>
+<h1>Gerar chaves de aviso (push)</h1>
+<p>Esta página roda <b>só no seu computador</b>. Nada é enviado para a internet. Clique, copie cada valor direto para o Netlify e feche a página.</p>
+<button id="go">Gerar chaves novas</button>
+
+<div id="out" hidden>
+  <div class="box"><b>1) NEXT_PUBLIC_VAPID_PUBLIC_KEY</b> <small>(pública, pode aparecer no site)</small>
+    <code id="pub"></code><button data-c="pub">Copiar</button></div>
+  <div class="box warn"><b>2) VAPID_PRIVATE_KEY</b> <small>(SECRETA: só no Netlify, marcada como secreta; nunca no chat nem no GitHub)</small>
+    <code id="priv"></code><button data-c="priv">Copiar</button></div>
+  <div class="box warn"><b>3) CRON_SECRET</b> <small>(SECRETA: senha do agendador; use o mesmo valor no GitHub Actions)</small>
+    <code id="cron"></code><button data-c="cron">Copiar</button></div>
+  <div class="box"><b>4) VAPID_SUBJECT</b> <small>(escreva você: mailto: + seu e-mail. Ex.: mailto:contato@seudominio.com)</small></div>
+</div>
+
+<script>
+function b64u(buf){var s='',b=new Uint8Array(buf);for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+async function gen(){
+  var kp=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+  var pub=b64u(await crypto.subtle.exportKey('raw',kp.publicKey));        // 65 bytes
+  var jwk=await crypto.subtle.exportKey('jwk',kp.privateKey);             // d = 32 bytes (já em base64url)
+  var r=new Uint8Array(32);crypto.getRandomValues(r);
+  return {pub:pub,priv:jwk.d,cron:b64u(r)};
+}
+document.getElementById('go').onclick=async function(){
+  var k=await gen();
+  ['pub','priv','cron'].forEach(function(id){document.getElementById(id).textContent=k[id]});
+  document.getElementById('out').hidden=false;
+};
+document.addEventListener('click',function(e){
+  var id=e.target.getAttribute&&e.target.getAttribute('data-c'); if(!id)return;
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(function(){e.target.textContent='Copiado!'});
+});
+</script>
+</body>
+</html>

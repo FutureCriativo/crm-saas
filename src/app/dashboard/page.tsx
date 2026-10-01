@@ -1,129 +1,86 @@
 'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { PageHeader, Loading, Badge, ErrorBox } from '@/components/ui';
+import TaskCard from '@/components/features/TaskCard';
+import { IconUsers, IconShield, IconAlert, IconInbox, IconClipboard, IconChevron, IconPlus } from '@/components/icons';
+import { useAsync } from '@/hooks/useAsync';
+import { listTasks, taskCounters } from '@/services/tasks';
+import { listRequests } from '@/services/requests';
 import { supabase } from '@/lib/supabase';
-import { formatDate, todayISO, addDaysISO, warrantyStatus } from '@/lib/format';
-import { PageHeader, WarrantyBadge, Loading } from '@/components/ui';
-import { IconUsers, IconShield, IconAlert, IconChevron, IconPlus } from '@/components/icons';
+import { formatDate } from '@/lib/format';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, expired: 0 });
-  const [recent, setRecent] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      const today = todayISO();
-      const in30 = addDaysISO(30);
-
-      // head: true = só conta, não baixa as linhas
-      const [total, active, expiring, expired, last] = await Promise.all([
-        supabase.from('clients').select('*', { count: 'exact', head: true }),
-        supabase.from('installations').select('*', { count: 'exact', head: true })
-          .gte('warranty_expires_at', today),
-        supabase.from('installations').select('*', { count: 'exact', head: true })
-          .gte('warranty_expires_at', today).lt('warranty_expires_at', in30),
-        supabase.from('installations').select('*', { count: 'exact', head: true })
-          .lt('warranty_expires_at', today),
-        supabase.from('installations')
-          .select('id, order_number, machine_type, installation_date, warranty_expires_at, clients (name)')
-          .order('installation_date', { ascending: false })
-          .limit(5),
-      ]);
-
-      setStats({
-        total: total.count || 0,
-        active: active.count || 0,
-        expiring: expiring.count || 0,
-        expired: expired.count || 0,
-      });
-      setRecent(last.data || []);
-      setLoading(false);
-    };
-
-    load();
+  const { data, loading, error } = useAsync(async () => {
+    const [counters, requests, tasks, clients] = await Promise.all([
+      taskCounters(), listRequests('new'), listTasks({ status: 'pending' }),
+      supabase.from('clients').select('*', { count: 'exact', head: true }),
+    ]);
+    return { counters, requests, tasks, clients: clients.count || 0 };
   }, []);
 
   if (loading) return <Loading />;
+  if (!data) return <ErrorBox text={error || 'Não foi possível carregar.'} />;
+  const { counters: c, requests, tasks, clients } = data;
 
   const cards = [
-    { label: 'Clientes', value: stats.total, icon: IconUsers, tint: 'bg-brand-100 text-brand-700', href: '/dashboard/clients' },
-    { label: 'Em garantia', value: stats.active, icon: IconShield, tint: 'bg-emerald-50 text-emerald-600', href: '/dashboard/installations' },
-    { label: 'Vencem em 30 dias', value: stats.expiring, icon: IconAlert, tint: 'bg-amber-50 text-amber-600', href: '/dashboard/installations' },
-    { label: 'Garantia vencida', value: stats.expired, icon: IconAlert, tint: 'bg-rose-50 text-rose-600', href: '/dashboard/installations' },
+    { label: 'Pedidos novos', value: requests.length, icon: IconInbox, tint: 'bg-rose-50 text-rose-600', href: '/dashboard/requests' },
+    { label: 'Tarefas pendentes', value: c.pending, icon: IconClipboard, tint: 'bg-brand-100 text-brand-700', href: '/dashboard/tasks' },
+    { label: 'Em garantia', value: c.active, icon: IconShield, tint: 'bg-emerald-50 text-emerald-600', href: '/dashboard/tasks' },
+    { label: 'Vencem em 30 dias', value: c.expiring, icon: IconAlert, tint: 'bg-amber-50 text-amber-600', href: '/dashboard/tasks' },
+    { label: 'Garantia vencida', value: c.expired, icon: IconAlert, tint: 'bg-slate-100 text-slate-600', href: '/dashboard/tasks' },
+    { label: 'Clientes', value: clients, icon: IconUsers, tint: 'bg-brand-100 text-brand-700', href: '/dashboard/clients' },
   ];
 
   return (
     <>
-      <PageHeader title="Início" subtitle="Resumo dos seus clientes e garantias" />
-
-      <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-4">
+      <PageHeader title="Início" subtitle="Resumo do seu dia" action={<Link href="/dashboard/tasks/new" className="btn-primary hidden md:inline-flex"><IconPlus className="h-5 w-5" /> Nova tarefa</Link>} />
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3">
         {cards.map(({ label, value, icon: Icon, tint, href }) => (
-          <Link key={label} href={href} className="card p-4 transition hover:-translate-y-0.5 hover:shadow-md md:p-5">
-            <span className={`grid h-10 w-10 place-items-center rounded-xl ${tint}`}>
-              <Icon className="h-5 w-5" />
-            </span>
-            <p className="mt-4 text-3xl font-bold tracking-tight text-slate-900">{value}</p>
-            <p className="mt-1 text-sm text-slate-500">{label}</p>
+          <Link key={label} href={href} className="card p-4 transition hover:-translate-y-0.5 hover:shadow-md md:p-5" data-testid={`stat-${label}`}>
+            <span className={`grid h-10 w-10 place-items-center rounded-xl ${tint}`}><Icon className="h-5 w-5" /></span>
+            <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">{value}</p>
+            <p className="mt-0.5 text-sm text-slate-500">{label}</p>
           </Link>
         ))}
       </div>
 
-      <div className="mt-6 grid gap-3 md:grid-cols-2 md:gap-5">
-        <Link href="/dashboard/clients/new"
-          className="card group flex items-center gap-4 p-5 transition hover:border-brand-300">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-300 text-brand-900">
-            <IconUsers className="h-6 w-6" />
-          </span>
-          <span className="flex-1">
-            <span className="block font-semibold text-slate-900">Novo cliente</span>
-            <span className="text-sm text-slate-500">Cadastro rápido em 1 minuto</span>
-          </span>
-          <IconChevron className="h-5 w-5 text-slate-300 group-hover:text-brand-600" />
-        </Link>
-        <Link href="/dashboard/installations/new"
-          className="card group flex items-center gap-4 p-5 transition hover:border-brand-300">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-300 text-brand-900">
-            <IconPlus className="h-6 w-6" />
-          </span>
-          <span className="flex-1">
-            <span className="block font-semibold text-slate-900">Nova instalação</span>
-            <span className="text-sm text-slate-500">O número da OS é gerado sozinho</span>
-          </span>
-          <IconChevron className="h-5 w-5 text-slate-300 group-hover:text-brand-600" />
-        </Link>
+      <div className="mt-6 grid gap-5 lg:grid-cols-2">
+        <section className="card">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <h2 className="font-semibold text-slate-900">Pedidos novos</h2>
+            <Link href="/dashboard/requests" className="text-sm font-medium text-brand-700">Ver todos</Link>
+          </div>
+          {requests.length === 0 ? <p className="px-5 py-8 text-center text-sm text-slate-500">Nenhum pedido novo.</p> : (
+            <ul className="divide-y divide-slate-100">
+              {requests.slice(0, 5).map((r) => (
+                <li key={r.id}><Link href="/dashboard/requests" className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50">
+                  <span className="font-mono text-xs font-semibold text-brand-800">#{r.request_number}</span>
+                  <div className="min-w-0 flex-1"><p className="truncate font-medium text-slate-800">{r.name}</p><p className="truncate text-sm text-slate-500">{r.city || r.address}</p></div>
+                  <Badge tone={r.kind === 'installation' ? 'blue' : 'amber'}>{r.kind === 'installation' ? 'Instalação' : 'Manutenção'}</Badge>
+                  <IconChevron className="h-4 w-4 text-slate-300" />
+                </Link></li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section className="card">
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <h2 className="font-semibold text-slate-900">Próximas tarefas</h2>
+            <Link href="/dashboard/tasks" className="text-sm font-medium text-brand-700">Ver todas</Link>
+          </div>
+          {tasks.length === 0 ? <p className="px-5 py-8 text-center text-sm text-slate-500">Nenhuma tarefa pendente.</p> : (
+            <ul className="divide-y divide-slate-100">
+              {tasks.slice(0, 5).map((t) => (
+                <li key={t.id}><Link href={`/dashboard/tasks/${t.id}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50">
+                  <span className="font-mono text-xs font-semibold text-brand-800">{t.order_number}</span>
+                  <div className="min-w-0 flex-1"><p className="truncate font-medium text-slate-800">{t.clients?.name}</p><p className="truncate text-sm text-slate-500">{t.kind === 'installation' ? 'Instalação' : 'Manutenção'} · {formatDate(t.scheduled_date)}</p></div>
+                  <IconChevron className="h-4 w-4 text-slate-300" />
+                </Link></li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
-
-      <section className="card mt-6">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 className="font-semibold text-slate-900">Últimas instalações</h2>
-          <Link href="/dashboard/installations" className="text-sm font-medium text-brand-700 hover:text-brand-900">
-            Ver todas
-          </Link>
-        </div>
-        {recent.length === 0 ? (
-          <p className="px-5 py-10 text-center text-slate-500">Nenhuma instalação ainda.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {recent.map((r) => (
-              <li key={r.id} className="flex items-center gap-4 px-5 py-3.5">
-                <span className="hidden rounded-lg bg-brand-50 px-2.5 py-1 font-mono text-xs font-semibold text-brand-800 sm:inline">
-                  {r.order_number}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-slate-800">{r.clients?.name}</p>
-                  <p className="truncate text-sm text-slate-500">
-                    <span className="font-mono text-brand-800 sm:hidden">{r.order_number} · </span>
-                    {r.machine_type} · {formatDate(r.installation_date)}
-                  </p>
-                </div>
-                <WarrantyBadge status={warrantyStatus(r.warranty_expires_at)} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </>
   );
 }

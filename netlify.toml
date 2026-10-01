@@ -1,0 +1,6 @@
+# Netlify: o plugin do Next.js é instalado automaticamente. Só fixamos a versão do Node.
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
